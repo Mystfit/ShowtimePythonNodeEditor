@@ -9,7 +9,7 @@ from nodeeditor.node_socket import LEFT_CENTER, RIGHT_CENTER
 from nodeeditor.utils import dumpException
 
 
-class CalcGraphicsNode(QDMGraphicsNode):
+class ShowtimeEditorGraphicsNode(QDMGraphicsNode):
     def initSizes(self):
         super().initSizes()
         self.width = 160
@@ -37,26 +37,28 @@ class CalcGraphicsNode(QDMGraphicsNode):
         )
 
 
-class CalcContent(QDMNodeContentWidget):
+class ShowtimeEditorContent(QDMNodeContentWidget):
     def initUI(self):
         lbl = QLabel(self.node.content_label, self)
         lbl.setObjectName(self.node.content_label_objname)
 
 
-class CalcNode(Node):
+class ShowtimeEditorNode(Node):
     icon = ""
-    op_code = 0
+    # op_code = 0
     op_title = "Undefined"
     content_label = ""
-    content_label_objname = "calc_node_bg"
+    content_label_objname = "showtime_editor_node_bg"
+    creatable = False
 
-    GraphicsNode_class = CalcGraphicsNode
-    NodeContent_class = CalcContent
+    GraphicsNode_class = ShowtimeEditorGraphicsNode
+    NodeContent_class = ShowtimeEditorContent
 
-    def __init__(self, scene, inputs=[2,2], outputs=[1]):
+    def __init__(self, entity, scene, inputs=[], outputs=[]):
         super().__init__(scene, self.__class__.op_title, inputs, outputs)
 
-        self.value = None
+        # self.value = None
+        self.entity = entity
 
         # it's really important to mark all nodes Dirty by default
         self.markDirty()
@@ -68,62 +70,66 @@ class CalcNode(Node):
         self.output_socket_position = RIGHT_CENTER
 
     def evalOperation(self, input1, input2):
-        return 123
+        pass
+        # return 123
 
     def evalImplementation(self):
-        i1 = self.getInput(0)
-        i2 = self.getInput(1)
+        pass
+        # i1 = self.getInput(0)
+        # i2 = self.getInput(1)
 
-        if i1 is None or i2 is None:
-            self.markInvalid()
-            self.markDescendantsDirty()
-            self.grNode.setToolTip("Connect all inputs")
-            return None
+        # if i1 is None or i2 is None:
+        #     self.markInvalid()
+        #     self.markDescendantsDirty()
+        #     self.grNode.setToolTip("Connect all inputs")
+        #     return None
 
-        else:
-            val = self.evalOperation(i1.eval(), i2.eval())
-            self.value = val
-            self.markDirty(False)
-            self.markInvalid(False)
-            self.grNode.setToolTip("")
+        # else:
+        #     val = self.evalOperation(i1.eval(), i2.eval())
+        #     self.value = val
+        #     self.markDirty(False)
+        #     self.markInvalid(False)
+        #     self.grNode.setToolTip("")
 
-            self.markDescendantsDirty()
-            self.evalChildren()
+        #     self.markDescendantsDirty()
+        #     self.evalChildren()
 
-            return val
+        #     return val
 
     def eval(self):
-        if not self.isDirty() and not self.isInvalid():
-            print(" _> returning cached %s value:" % self.__class__.__name__, self.value)
-            return self.value
+        pass
+        # if not self.isDirty() and not self.isInvalid():
+        #     print(" _> returning cached %s value:" % self.__class__.__name__, self.value)
+        #     return self.value
 
-        try:
+        # try:
 
-            val = self.evalImplementation()
-            return val
-        except ValueError as e:
-            self.markInvalid()
-            self.grNode.setToolTip(str(e))
-            self.markDescendantsDirty()
-        except Exception as e:
-            self.markInvalid()
-            self.grNode.setToolTip(str(e))
-            dumpException(e)
+        #     val = self.evalImplementation()
+        #     return val
+        # except ValueError as e:
+        #     self.markInvalid()
+        #     self.grNode.setToolTip(str(e))
+        #     self.markDescendantsDirty()
+        # except Exception as e:
+        #     self.markInvalid()
+        #     self.grNode.setToolTip(str(e))
+        #     dumpException(e)
 
 
 
     def onInputChanged(self, socket=None):
-        print("%s::__onInputChanged" % self.__class__.__name__)
-        self.markDirty()
-        self.eval()
+        pass
+        # print("%s::__onInputChanged" % self.__class__.__name__)
+        # self.markDirty()
+        # self.eval()
 
 
     def serialize(self):
         res = super().serialize()
-        res['op_code'] = self.__class__.op_code
+        # res['op_code'] = self.__class__.op_code
         return res
 
     def deserialize(self, data, hashmap={}, restore_id=True):
         res = super().deserialize(data, hashmap, restore_id)
-        print("Deserialized CalcNode '%s'" % self.__class__.__name__, "res:", res)
+        print("Deserialized ShowtimeEditorNode '%s'" % self.__class__.__name__, "res:", res)
         return res

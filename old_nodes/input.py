@@ -1,12 +1,12 @@
 from qtpy.QtWidgets import QLineEdit
 from qtpy.QtCore import Qt
-from calc_conf import register_node, OP_NODE_INPUT
-from calc_node_base import CalcNode, CalcGraphicsNode
+from showtime_editor_conf import register_node, OP_NODE_INPUT
+from showtime_editor_node_base import ShowtimeEditorNode, ShowtimeEditorGraphicsNode
 from nodeeditor.node_content_widget import QDMNodeContentWidget
 from nodeeditor.utils import dumpException
 
 
-class CalcInputContent(QDMNodeContentWidget):
+class ShowtimeEditorInputContent(QDMNodeContentWidget):
     def initUI(self):
         self.edit = QLineEdit("1", self)
         self.edit.setAlignment(Qt.AlignRight)
@@ -29,19 +29,19 @@ class CalcInputContent(QDMNodeContentWidget):
 
 
 @register_node(OP_NODE_INPUT)
-class CalcNode_Input(CalcNode):
+class ShowtimeEditorNode_Input(ShowtimeEditorNode):
     icon = "icons/in.png"
     op_code = OP_NODE_INPUT
     op_title = "Input"
-    content_label_objname = "calc_node_input"
+    content_label_objname = "showtime_editor_node_input"
 
     def __init__(self, scene):
         super().__init__(scene, inputs=[], outputs=[3])
         self.eval()
 
     def initInnerClasses(self):
-        self.content = CalcInputContent(self)
-        self.grNode = CalcGraphicsNode(self)
+        self.content = ShowtimeEditorInputContent(self)
+        self.grNode = ShowtimeEditorGraphicsNode(self)
         self.content.edit.textChanged.connect(self.onInputChanged)
 
     def evalImplementation(self):

@@ -1,14 +1,17 @@
 import os
 from qtpy.QtGui import QIcon, QKeySequence
-from qtpy.QtWidgets import QMdiArea, QWidget, QDockWidget, QAction, QMessageBox, QFileDialog
-from qtpy.QtCore import Qt, QSignalMapper
-
+from qtpy.QtWidgets import QMdiArea, QWidget, QDockWidget, QAction, QMessageBox, QFileDialog, QErrorMessage
+from qtpy.QtCore import Qt, QSignalMapper, Signal, Slot
 from nodeeditor.utils import loadStylesheets
 from nodeeditor.node_editor_window import NodeEditorWindow
-from calc_sub_window import CalculatorSubWindow
-from calc_drag_listbox import QDMDragListbox
+from showtime_editor_sub_window import ShowtimeEditorSubWindow
+from showtime_editor_server_browser import ShowtimeEditorServerBrowser
+from showtime_editor_drag_listbox import QDMDragListbox
 from nodeeditor.utils import dumpException, pp
-from calc_conf import CALC_NODES
+from showtime_editor_conf import SHOWTIME_EDITOR_NODES
+from showtime_editor_client import ShowtimeEditorClient
+from showtime.showtime import ZstServerAddress
+
 
 # Enabling edge validators
 from nodeeditor.node_edge import Edge
@@ -29,11 +32,13 @@ import qss.nodeeditor_dark_resources
 DEBUG = False
 
 
-class CalculatorWindow(NodeEditorWindow):
+class ShowtimeEditorWindow(NodeEditorWindow):
+    def __init__(self):
+        NodeEditorWindow.__init__(self)
 
     def initUI(self):
-        self.name_company = 'Blenderfreak'
-        self.name_product = 'Calculator NodeEditor'
+        self.name_company = 'Byron Mallett'
+        self.name_product = 'Showtime Editor'
 
         self.stylesheet_filename = os.path.join(os.path.dirname(__file__), "qss/nodeeditor.qss")
         loadStylesheets(
@@ -45,7 +50,7 @@ class CalculatorWindow(NodeEditorWindow):
 
         if DEBUG:
             print("Registered nodes:")
-            pp(CALC_NODES)
+            pp(SHOWTIME_EDITOR_NODES)
 
 
         self.mdiArea = QMdiArea()
@@ -71,7 +76,7 @@ class CalculatorWindow(NodeEditorWindow):
 
         self.readSettings()
 
-        self.setWindowTitle("Calculator NodeEditor Example")
+        self.setWindowTitle("Showtime Editor")
 
     def closeEvent(self, event):
         self.mdiArea.closeAllSubWindows()
@@ -114,32 +119,55 @@ class CalculatorWindow(NodeEditorWindow):
             subwnd.show()
         except Exception as e: dumpException(e)
 
+    # Signal that will fire when a client has connected to a server
+    ConnectedSignal = Signal(ShowtimeEditorClient, ZstServerAddress)
 
     def onFileOpen(self):
-        fnames, filter = QFileDialog.getOpenFileNames(self, 'Open graph from file', self.getFileDialogDirectory(), self.getFileDialogFilter())
+        # Server list window
+        serverdialog = ShowtimeEditorServerBrowser()
 
-        try:
-            for fname in fnames:
-                if fname:
-                    existing = self.findMdiChild(fname)
-                    if existing:
-                        self.mdiArea.setActiveSubWindow(existing)
-                    else:
-                        # we need to create new subWindow and open the file
-                        nodeeditor = CalculatorSubWindow()
-                        if nodeeditor.fileLoad(fname):
-                            self.statusBar().showMessage("File %s loaded" % fname, 5000)
-                            nodeeditor.setTitle()
-                            subwnd = self.createMdiChild(nodeeditor)
-                            subwnd.show()
-                        else:
-                            nodeeditor.close()
-        except Exception as e: dumpException(e)
+        # Block until dialog is closed
+        serverdialog.exec_()
 
+        # Create a new client to join this server
+        windowclient = ShowtimeEditorClient()
+        windowclient.create_client()
+
+        # We use a signal to communicate from Showtime to the GUI
+        self.ConnectedSignal.connect(self.connected_to_server)
+        windowclient.client.connection_events().connected_to_server.add(lambda client, server, signal=self.ConnectedSignal, owner=windowclient: signal.emit(windowclient, server))
+
+        if serverdialog.servername:
+            windowclient.client.auto_join_by_name(serverdialog.servername)
+        else:
+            windowclient.client.join(serverdialog.serveraddress)
+
+        if not windowclient.client.is_connected():
+            print("Connection failed")
+            error_dialog = QErrorMessage()
+            error_dialog.showMessage("Could not connect to server {0}".format(server.address))
+            error_dialog.exec_()
+
+    @Slot(ShowtimeEditorClient, ZstServerAddress)
+    def connected_to_server(self, client, server):
+        print("Server:{0} Address:{1} Owner:{2}".format(server.name, server.address, client))
+        existingserver = self.findMdiChild(server.name)
+        if existingserver:
+            self.mdiArea.setActiveSubWindow(existingserver)
+        else:
+            # we need to create new subWindow and show the server graph
+            nodeeditor = ShowtimeEditorSubWindow(client)
+            self.statusBar().showMessage("Connected to server {0}".format(server.name))
+            nodeeditor.setWindowTitle (server.name if server.name else server.address)
+            subwnd = self.createMdiChild(nodeeditor)
+            subwnd.show()
+
+        # Remove temporary signal
+        self.ConnectedSignal.disconnect()
 
     def about(self):
-        QMessageBox.about(self, "About Calculator NodeEditor Example",
-                "The <b>Calculator NodeEditor</b> example demonstrates how to write multiple "
+        QMessageBox.about(self, "About ShowtimeEditor NodeEditor Example",
+                "The <b>ShowtimeEditor NodeEditor</b> example demonstrates how to write multiple "
                 "document interface applications using PyQt5 and NodeEditor. For more information visit: "
                 "<a href='https://www.blenderfreak.com/'>www.BlenderFreak.com</a>")
 
@@ -189,8 +217,6 @@ class CalculatorWindow(NodeEditorWindow):
             self.actUndo.setEnabled(hasMdiChild and active.canUndo())
             self.actRedo.setEnabled(hasMdiChild and active.canRedo())
         except Exception as e: dumpException(e)
-
-
 
     def updateWindowMenu(self):
         self.windowMenu.clear()
@@ -250,13 +276,16 @@ class CalculatorWindow(NodeEditorWindow):
         self.statusBar().showMessage("Ready")
 
     def createMdiChild(self, child_widget=None):
-        nodeeditor = child_widget if child_widget is not None else CalculatorSubWindow()
+        nodeeditor = child_widget if child_widget is not None else ShowtimeEditorSubWindow()
         subwnd = self.mdiArea.addSubWindow(nodeeditor)
         subwnd.setWindowIcon(self.empty_icon)
         # nodeeditor.scene.addItemSelectedListener(self.updateEditMenu)
         # nodeeditor.scene.addItemsDeselectedListener(self.updateEditMenu)
-        nodeeditor.scene.history.addHistoryModifiedListener(self.updateEditMenu)
-        nodeeditor.addCloseEventListener(self.onSubWndClose)
+        try:
+            nodeeditor.scene.history.addHistoryModifiedListener(self.updateEditMenu)
+            nodeeditor.addCloseEventListener(self.onSubWndClose)
+        except AttributeError:
+            print("Widget has no scene attribute")
         return subwnd
 
     def onSubWndClose(self, widget, event):

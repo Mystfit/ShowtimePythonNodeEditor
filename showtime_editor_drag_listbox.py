@@ -2,7 +2,7 @@ from qtpy.QtGui import QPixmap, QIcon, QDrag
 from qtpy.QtCore import QSize, Qt, QByteArray, QDataStream, QMimeData, QIODevice, QPoint
 from qtpy.QtWidgets import QListWidget, QAbstractItemView, QListWidgetItem
 
-from calc_conf import CALC_NODES, get_class_from_opcode, LISTBOX_MIMETYPE
+from showtime_editor_conf import SHOWTIME_EDITOR_NODES, get_class_from_opcode, LISTBOX_MIMETYPE
 from nodeeditor.utils import dumpException
 
 
@@ -21,11 +21,13 @@ class QDMDragListbox(QListWidget):
 
 
     def addMyItems(self):
-        keys = list(CALC_NODES.keys())
+        keys = list(SHOWTIME_EDITOR_NODES.keys())
         keys.sort()
         for key in keys:
             node = get_class_from_opcode(key)
-            self.addMyItem(node.op_title, node.icon, node.op_code)
+            if hasattr(node, "creatable"):
+                if node.creatable:
+                    self.addMyItem(node.op_title, node.icon, node.op_code)
 
 
     def addMyItem(self, name, icon=None, op_code=0):
