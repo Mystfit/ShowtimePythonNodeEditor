@@ -55,7 +55,7 @@ class ShowtimeEditorNode(Node):
     NodeContent_class = ShowtimeEditorContent
 
     def __init__(self, entity, scene, inputs=[], outputs=[]):
-        super().__init__(scene, self.__class__.op_title, inputs, outputs)
+        super().__init__(scene, entity.URI().last().path(), inputs, outputs)
 
         # self.value = None
         self.entity = entity
@@ -123,9 +123,9 @@ class ShowtimeEditorNode(Node):
         # self.markDirty()
         # self.eval()
 
-
     def serialize(self):
         res = super().serialize()
+        res['URI'] = self.entity.URI().path()
         # res['op_code'] = self.__class__.op_code
         return res
 

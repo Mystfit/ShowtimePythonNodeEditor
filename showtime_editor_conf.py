@@ -14,27 +14,32 @@ SHOWTIME_EDITOR_NODES = {
 
 class ConfException(Exception): pass
 class InvalidNodeRegistration(ConfException): pass
-class OpCodeNotRegistered(ConfException): pass
+class EntityTypeNotRegistered(ConfException): pass
 
 
-def register_node_now(op_code, class_reference):
-    if op_code in SHOWTIME_EDITOR_NODES:
+def register_node_now(entity_type, class_reference):
+    print("Registering entity type {0} to node class {1}".format(entity_type, class_reference))
+    if entity_type in SHOWTIME_EDITOR_NODES:
         raise InvalidNodeRegistration("Duplicate node registration of '%s'. There is already %s" %(
-            op_code, SHOWTIME_EDITOR_NODES[op_code]
+            entity_type, SHOWTIME_EDITOR_NODES[entity_type]
         ))
-    SHOWTIME_EDITOR_NODES[op_code] = class_reference
+    SHOWTIME_EDITOR_NODES[entity_type] = class_reference
 
 
-def register_node(op_code):
+def register_node(entity_type):
     def decorator(original_class):
-        register_node_now(op_code, original_class)
+        register_node_now(entity_type, original_class)
         return original_class
     return decorator
 
-def get_class_from_opcode(op_code):
-    if op_code not in SHOWTIME_EDITOR_NODES: raise OpCodeNotRegistered("OpCode '%d' is not registered" % op_code)
-    return SHOWTIME_EDITOR_NODES[op_code]
+def get_node_class_from_entity_type(entity_type):
+    if entity_type not in SHOWTIME_EDITOR_NODES: raise EntityTypeNotRegistered("EntityType '%d' is not registered" % entity_type)
+    return SHOWTIME_EDITOR_NODES[entity_type]
 
+def get_node_class_from_entity(entity):
+    if not entity:
+        raise EntityTypeNotRegistered("Entity is None")
+    return get_node_class_from_entity_type(entity.entity_type())
 
 
 # import all nodes and register them

@@ -2,11 +2,13 @@ from qtpy.QtGui import QIcon, QPixmap
 from qtpy.QtCore import QDataStream, QIODevice, Qt
 from qtpy.QtWidgets import QAction, QGraphicsProxyWidget, QMenu
 
-from showtime_editor_conf import SHOWTIME_EDITOR_NODES, get_class_from_opcode, LISTBOX_MIMETYPE
+from showtime_editor_conf import SHOWTIME_EDITOR_NODES, get_node_class_from_entity, LISTBOX_MIMETYPE
 from nodeeditor.node_editor_widget import NodeEditorWidget
 from nodeeditor.node_edge import EDGE_TYPE_DIRECT, EDGE_TYPE_BEZIER, EDGE_TYPE_SQUARE
 from nodeeditor.node_graphics_view import MODE_EDGE_DRAG
 from nodeeditor.utils import dumpException
+
+from nodes.performer import ShowtimeEditorNode_Performer
 
 DEBUG = False
 DEBUG_CONTEXT = False
@@ -35,12 +37,13 @@ class ShowtimeEditorSubWindow(NodeEditorWidget):
         self._entity_to_node = {}
 
         self.register_graph_events()
+        self.populate_graph()
 
     def register_graph_events(self):
-        self.ZST.client.hierarchy_events().performer_arriving.add(self.performer_arriving)
-        self.ZST.client.hierarchy_events().performer_leaving.add(self.performer_leaving)
-        self.ZST.client.hierarchy_events().entity_arriving.add(self.entity_arriving)
-        self.ZST.client.hierarchy_events().entity_leaving.add(self.entity_leaving)
+        self.ZST.client.hierarchy_events().performer_arriving.add(self.create_node_for_entity)
+        self.ZST.client.hierarchy_events().performer_leaving.add(self.remove_entity_node)
+        self.ZST.client.hierarchy_events().entity_arriving.add(self.create_node_for_entity)
+        self.ZST.client.hierarchy_events().entity_leaving.add(self.remove_entity_node)
         self.ZST.client.hierarchy_events().entity_updated.add(self.entity_updated)
         self.ZST.client.hierarchy_events().factory_arriving.add(self.factory_arriving)
         self.ZST.client.hierarchy_events().factory_leaving.add(self.factory_leaving)
@@ -50,20 +53,14 @@ class ShowtimeEditorSubWindow(NodeEditorWidget):
     # Hierarchy events
     # ------------------------------------------------ 
 
-    def performer_arriving(self, performer):
-        print("Editor|> Performer {0} arriving".format(performer.URI().path()))
-
     def performer_leaving(self, performer_path):
         print("Editor|> Performer {0} leaving".format(performer_path.path()))
 
     def entity_arriving(self, entity):
         print("Editor|> Entity {0} arriving".format(entity.URI().path()))
 
-    def entity_leaving(self, entity):
-        print("Editor|> Entity {0} leaving".format(entity.URI().path()))
-
     def entity_updated(self, entity_path):
-        print("Editor|> Entity {0} leaving".format(entity_path.path()))
+        print("Editor|> Entity {0} updated".format(entity_path.path()))
 
     def factory_arriving(self, factory):
         print("Editor|> Factory {0} arriving".format(factory.URI().path()))
@@ -73,6 +70,37 @@ class ShowtimeEditorSubWindow(NodeEditorWidget):
 
     # ------------------------------------------------
 
+    def populate_graph(self):
+        for performer in self.ZST.client.get_performers():
+            performer_node = self.create_node_for_entity(performer)
+            if performer:
+                for entity in performer.get_child_entities(False, True):
+                    component_node = self.create_node_for_entity(entity)
+
+    def create_node_for_entity(self, entity):
+        entity_node = None
+        if entity.URI().path() not in self._entity_to_node:
+            try:
+                entity_node_class = get_node_class_from_entity(entity)
+                if not entity_node_class:
+                    raise Exception("No node class found")
+                entity_node = entity_node_class(self.scene, entity)
+                self._entity_to_node[entity.URI().path()] = entity_node
+
+                width = self.frameGeometry().width()
+                height = self.frameGeometry().height()
+                entity_node.setPos(width * 0.5, height * 0.5)
+                self.scene.history.storeHistory("Created node %s" % entity_node.__class__.__name__)
+            except Exception as e: dumpException(e)
+        else:
+            entity_node = self._entity_to_node[entity.URI().path()]
+        return entity_node
+
+    def remove_entity_node(self, entity_path):
+        if entity_path.path() in self._entity_to_node:
+            node = self._entity_to_node[entity_path.path()]
+            node.remove()
+            self._entity_to_node.pop(entity_path.path(), None)
 
     def getNodeClassFromData(self, data):
         if 'op_code' not in data: return Node

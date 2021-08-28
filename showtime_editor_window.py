@@ -135,17 +135,23 @@ class ShowtimeEditorWindow(NodeEditorWindow):
 
         # We use a signal to communicate from Showtime to the GUI
         self.ConnectedSignal.connect(self.connected_to_server)
-        windowclient.client.connection_events().connected_to_server.add(lambda client, server, signal=self.ConnectedSignal, owner=windowclient: signal.emit(windowclient, server))
 
+        # Make sure to COPY any addresses since they won't exist anymore when the slot processes the signal
+        windowclient.client.connection_events().connected_to_server.add(
+            lambda client, server, signal=self.ConnectedSignal, owner=windowclient: signal.emit(windowclient, ZstServerAddress(server))
+        )
+
+        # Join the performance
         if serverdialog.servername:
             windowclient.client.auto_join_by_name(serverdialog.servername)
         else:
             windowclient.client.join(serverdialog.serveraddress)
 
+        # Handle connection failure
         if not windowclient.client.is_connected():
             print("Connection failed")
             error_dialog = QErrorMessage()
-            error_dialog.showMessage("Could not connect to server {0}".format(server.address))
+            error_dialog.showMessage("Could not connect to server")
             error_dialog.exec_()
 
     @Slot(ShowtimeEditorClient, ZstServerAddress)
@@ -157,13 +163,14 @@ class ShowtimeEditorWindow(NodeEditorWindow):
         else:
             # we need to create new subWindow and show the server graph
             nodeeditor = ShowtimeEditorSubWindow(client)
-            self.statusBar().showMessage("Connected to server {0}".format(server.name))
+            serveraddress = str(server.address)
+            self.statusBar().showMessage("Connected to server {0}".format(serveraddress))
             nodeeditor.setWindowTitle (server.name if server.name else server.address)
             subwnd = self.createMdiChild(nodeeditor)
             subwnd.show()
 
         # Remove temporary signal
-        self.ConnectedSignal.disconnect()
+        # self.ConnectedSignal.disconnect()
 
     def about(self):
         QMessageBox.about(self, "About ShowtimeEditor NodeEditor Example",
