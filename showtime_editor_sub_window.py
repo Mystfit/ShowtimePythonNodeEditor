@@ -84,12 +84,26 @@ class ShowtimeEditorSubWindow(NodeEditorWidget):
                 entity_node_class = get_node_class_from_entity(entity)
                 if not entity_node_class:
                     raise Exception("No node class found")
-                entity_node = entity_node_class(self.scene, entity)
+                
+                # Get the parent node for this entity
+                parent_path =  entity.parent()
+                parent_node = None
+                if parent_entity.URI().path() in self._entity_to_node:
+                    parent_node = self._entity_to_node[parent_entity.URI().path()]
+
+                # Create the visual node for this entity
+                entity_node = entity_node_class(self.scene, entity, parent_node)
                 self._entity_to_node[entity.URI().path()] = entity_node
 
-                width = self.frameGeometry().width()
-                height = self.frameGeometry().height()
-                entity_node.setPos(width * 0.5, height * 0.5)
+                # Set initial node position
+                try:
+                    width = self.frameGeometry().width()
+                    height = self.frameGeometry().height()
+                    # entity_node.setPos(width * 0.5, height * 0.5)
+                except AttributeError:
+                    # Can't set position for plugs so ignore the missing method
+                    pass
+
                 self.scene.history.storeHistory("Created node %s" % entity_node.__class__.__name__)
             except Exception as e: dumpException(e)
         else:

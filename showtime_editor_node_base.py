@@ -54,11 +54,12 @@ class ShowtimeEditorNode(Node):
     GraphicsNode_class = ShowtimeEditorGraphicsNode
     NodeContent_class = ShowtimeEditorContent
 
-    def __init__(self, entity, scene, inputs=[], outputs=[]):
+    def __init__(self, entity, scene, parent_node=None, inputs=[], outputs=[]):
         super().__init__(scene, entity.URI().last().path(), inputs, outputs)
 
         # self.value = None
         self.entity = entity
+        self.parent_node = parent_node
 
         # it's really important to mark all nodes Dirty by default
         self.markDirty()

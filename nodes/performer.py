@@ -33,8 +33,8 @@ class ShowtimeEditorNode_Performer(ShowtimeEditorNode):
     content_label_objname = "showtime_editor_node_performer"
     creatable = False
 
-    def __init__(self, scene, performer):
-        super().__init__(performer, scene, inputs=[], outputs=[])
+    def __init__(self, scene, performer, parent_node=None):
+        super().__init__(performer, scene, parent_node, inputs=[], outputs=[])
 
     def initInnerClasses(self):
         self.content = ShowtimeEditorPerformerContent(self)

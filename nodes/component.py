@@ -36,8 +36,8 @@ class ShowtimeEditorNode_Component(ShowtimeEditorNode):
     content_label_objname = "showtime_editor_node_component"
     creatable = False
 
-    def __init__(self, scene, component):
-        super().__init__(component, scene, inputs=[], outputs=[])
+    def __init__(self, scene, component, parent_node=None):
+        super().__init__(component, scene, parent_node, inputs=[], outputs=[])
 
         # Register events
         # component.entity_events().child_entity_added.add(self.child_entity_added)
