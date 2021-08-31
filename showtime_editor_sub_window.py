@@ -86,10 +86,9 @@ class ShowtimeEditorSubWindow(NodeEditorWidget):
                     raise Exception("No node class found")
                 
                 # Get the parent node for this entity
-                parent_path =  entity.parent()
                 parent_node = None
-                if parent_entity.URI().path() in self._entity_to_node:
-                    parent_node = self._entity_to_node[parent_entity.URI().path()]
+                if entity.parent().URI().path() in self._entity_to_node:
+                    parent_node = self._entity_to_node[entity.parent().URI().path()]
 
                 # Create the visual node for this entity
                 entity_node = entity_node_class(self.scene, entity, parent_node)

@@ -1,19 +1,26 @@
 from qtpy.QtGui import QImage
 from qtpy.QtCore import QRectF
-from qtpy.QtWidgets import QLabel
+from qtpy.QtWidgets import QLabel, QSizePolicy, QGridLayout, QPushButton
 
 from nodeeditor.node_node import Node
 from nodeeditor.node_content_widget import QDMNodeContentWidget
 from nodeeditor.node_graphics_node import QDMGraphicsNode
 from nodeeditor.node_socket import LEFT_CENTER, RIGHT_CENTER
 from nodeeditor.utils import dumpException
+from nodeeditor.node_editor_widget import NodeEditorWidget
 
 
 class ShowtimeEditorGraphicsNode(QDMGraphicsNode):
+    maximised_width = 600
+    maximised_height = 500
+    minimised_width = 160
+    minimised_height = 74
+
     def initSizes(self):
         super().initSizes()
-        self.width = 160
-        self.height = 74
+        self.width = ShowtimeEditorGraphicsNode.minimised_width
+        self.height = ShowtimeEditorGraphicsNode.minimised_height
+
         self.edge_roundness = 6
         self.edge_padding = 0
         self.title_horizontal_padding = 8
@@ -36,11 +43,17 @@ class ShowtimeEditorGraphicsNode(QDMGraphicsNode):
             QRectF(offset, 0, 24.0, 24.0)
         )
 
-
 class ShowtimeEditorContent(QDMNodeContentWidget):
     def initUI(self):
-        lbl = QLabel(self.node.content_label, self)
-        lbl.setObjectName(self.node.content_label_objname)
+        self.layout = QGridLayout()
+        self.layout.setContentsMargins(0,0,0,0)
+        self.setLayout(self.layout)
+
+        # Create subgraph canvas to hold child nodes
+        self.subgraph = NodeEditorWidget(self)
+        self.subgraph.setVisible(False)
+        self.subgraph.setSizePolicy(QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding))
+        self.layout.addWidget(self.subgraph, 1, 1)
 
 
 class ShowtimeEditorNode(Node):
@@ -64,6 +77,7 @@ class ShowtimeEditorNode(Node):
         # it's really important to mark all nodes Dirty by default
         self.markDirty()
 
+        self.ismaximised = False
 
     def initSettings(self):
         super().initSettings()
@@ -116,7 +130,29 @@ class ShowtimeEditorNode(Node):
         #     self.grNode.setToolTip(str(e))
         #     dumpException(e)
 
+    def toggle_maximised(self):
+        if self.ismaximised:
+            self.minimize()
+        else:
+            self.maximise()
 
+    def maximise(self):
+        self.ismaximised = True
+        self.grNode.width = ShowtimeEditorGraphicsNode.maximised_width
+        self.grNode.height = ShowtimeEditorGraphicsNode.maximised_height
+        self.content.resize(self.grNode.width, self.grNode.height-50)
+        self.content.subgraph.setVisible(self.ismaximised)
+
+    def minimize(self):
+        self.ismaximised = False
+        self.grNode.width = ShowtimeEditorGraphicsNode.minimised_width
+        self.grNode.height = ShowtimeEditorGraphicsNode.minimised_height
+        self.content.resize(self.grNode.width, self.grNode.height-50)
+        self.content.subgraph.setVisible(self.ismaximised)
+
+    def onDoubleClicked(self, event):
+        """Event handling double click on Graphics Node in `Scene`"""
+        self.toggle_maximised()
 
     def onInputChanged(self, socket=None):
         pass
@@ -134,3 +170,4 @@ class ShowtimeEditorNode(Node):
         res = super().deserialize(data, hashmap, restore_id)
         print("Deserialized ShowtimeEditorNode '%s'" % self.__class__.__name__, "res:", res)
         return res
+

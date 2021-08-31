@@ -1,7 +1,7 @@
 from qtpy.QtWidgets import QLineEdit
 from qtpy.QtCore import Qt
 from showtime_editor_conf import register_node
-from showtime_editor_node_base import ShowtimeEditorNode, ShowtimeEditorGraphicsNode
+from showtime_editor_node_base import ShowtimeEditorNode, ShowtimeEditorGraphicsNode, ShowtimeEditorContent
 from showtime_editor_socket import ShowtimePlugSocket
 from nodeeditor.node_content_widget import QDMNodeContentWidget
 from nodeeditor.utils import dumpException
@@ -10,9 +10,9 @@ from showtime.showtime import ZstEntityType_COMPONENT
 from showtime.showtime import ZstComponent
 
 
-class ShowtimeEditorComponentContent(QDMNodeContentWidget):
+class ShowtimeEditorComponentContent(ShowtimeEditorContent):
     def initUI(self):
-        pass
+        ShowtimeEditorContent.initUI(self)
 
     def serialize(self):
         res = super().serialize()
@@ -30,7 +30,7 @@ class ShowtimeEditorComponentContent(QDMNodeContentWidget):
 @register_node(ZstEntityType_COMPONENT)
 class ShowtimeEditorNode_Component(ShowtimeEditorNode):
     Socket_class = ShowtimePlugSocket
-
+ 
     icon = "icons/add.png"
     op_title = "Component"
     content_label_objname = "showtime_editor_node_component"
@@ -40,8 +40,12 @@ class ShowtimeEditorNode_Component(ShowtimeEditorNode):
         super().__init__(component, scene, parent_node, inputs=[], outputs=[])
 
         # Register events
-        # component.entity_events().child_entity_added.add(self.child_entity_added)
-        # component.entity_events().child_entity_removed.add(self.child_entity_removed)
+        component.entity_events().child_entity_added.add(self.child_entity_added)
+        component.entity_events().child_entity_removed.add(self.child_entity_removed)
+
+    def initInnerClasses(self):
+        self.content = ShowtimeEditorComponentContent(self)
+        self.grNode = ShowtimeEditorGraphicsNode(self)
 
     def child_entity_added(self, entity):
         if entity:
@@ -51,6 +55,3 @@ class ShowtimeEditorNode_Component(ShowtimeEditorNode):
         if entity_path:
             print(entity_path.path())
 
-    def initInnerClasses(self):
-        self.content = ShowtimeEditorComponentContent(self)
-        self.grNode = ShowtimeEditorGraphicsNode(self)
