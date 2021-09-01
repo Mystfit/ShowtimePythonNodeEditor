@@ -11,10 +11,11 @@ from nodeeditor.node_editor_widget import NodeEditorWidget
 
 
 class ShowtimeEditorGraphicsNode(QDMGraphicsNode):
-    maximised_width = 600
-    maximised_height = 500
+    maximised_width = 1280
+    maximised_height = 900
     minimised_width = 160
     minimised_height = 74
+    maximised_padding = 25
 
     def initSizes(self):
         super().initSizes()
@@ -138,17 +139,40 @@ class ShowtimeEditorNode(Node):
 
     def maximise(self):
         self.ismaximised = True
-        self.grNode.width = ShowtimeEditorGraphicsNode.maximised_width
-        self.grNode.height = ShowtimeEditorGraphicsNode.maximised_height
-        self.content.resize(self.grNode.width, self.grNode.height-50)
+
+        # Set size values
+        title_offset = self.grNode.title_height + self.grNode.title_vertical_padding
+        self.grNode.width = (self.parent_node.content.width() if self.parent_node else self.scene.getView().viewport().width()) - ShowtimeEditorGraphicsNode.maximised_padding
+        self.grNode.height = (self.parent_node.content.height() if self.parent_node else self.scene.getView().viewport().height()) - ShowtimeEditorGraphicsNode.maximised_padding
+        self.content.resize(self.grNode.width, self.grNode.height - title_offset)
+        
+        # Show child graph
         self.content.subgraph.setVisible(self.ismaximised)
+
+        # Remember last node position
+        self.minimized_pos = self.pos
+        self.setPos(ShowtimeEditorGraphicsNode.maximised_padding * 0.5, ShowtimeEditorGraphicsNode.maximised_padding * 0.5)
+
+        # Draw maximised node on top
+        self.grNode.setZValue(len(self.content.subgraph.scene.nodes) + 10)
 
     def minimize(self):
         self.ismaximised = False
+
+        # Restore sizes
         self.grNode.width = ShowtimeEditorGraphicsNode.minimised_width
         self.grNode.height = ShowtimeEditorGraphicsNode.minimised_height
-        self.content.resize(self.grNode.width, self.grNode.height-50)
+        self.content.resize(self.grNode.width, self.grNode.height)
+
+        # Hide child graph
         self.content.subgraph.setVisible(self.ismaximised)
+
+        # Restore node position
+        self.setPos(self.minimized_pos.x(), self.minimized_pos.y())
+
+        # Restore node stacking order
+        self.grNode.setZValue(0)
+
 
     def onDoubleClicked(self, event):
         """Event handling double click on Graphics Node in `Scene`"""
@@ -171,3 +195,7 @@ class ShowtimeEditorNode(Node):
         print("Deserialized ShowtimeEditorNode '%s'" % self.__class__.__name__, "res:", res)
         return res
 
+    def onEdgeConnectionChanged(self, new_edge):
+        output_plug = new_edge.start_socket.plug
+        input_plug = new_edge.end_socket.plug
+        print("Connecting cable between {0} {1}".format(output_plug.URI().path(), input_plug.URI().path()))

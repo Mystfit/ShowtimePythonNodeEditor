@@ -1,7 +1,7 @@
 from qtpy.QtWidgets import QLineEdit
 from qtpy.QtCore import Qt
 from showtime_editor_conf import register_node
-from showtime_editor_node_base import ShowtimeEditorNode, ShowtimeEditorGraphicsNode
+from showtime_editor_node_base import ShowtimeEditorNode, ShowtimeEditorGraphicsNode, ShowtimeEditorContent
 from nodeeditor.node_content_widget import QDMNodeContentWidget
 from nodeeditor.utils import dumpException
 
@@ -9,9 +9,9 @@ from showtime.showtime import ZstEntityType_PERFORMER
 from showtime.showtime import ZstPerformer
 
 
-class ShowtimeEditorPerformerContent(QDMNodeContentWidget):
+class ShowtimeEditorPerformerContent(ShowtimeEditorContent):
     def initUI(self):
-        pass
+        ShowtimeEditorContent.initUI(self)
 
     def serialize(self):
         res = super().serialize()

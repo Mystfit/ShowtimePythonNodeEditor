@@ -87,11 +87,14 @@ class ShowtimeEditorSubWindow(NodeEditorWidget):
                 
                 # Get the parent node for this entity
                 parent_node = None
-                if entity.parent().URI().path() in self._entity_to_node:
-                    parent_node = self._entity_to_node[entity.parent().URI().path()]
+                if entity.parent():
+                    if entity.parent().URI().path() in self._entity_to_node:
+                        parent_node = self._entity_to_node[entity.parent().URI().path()]
+                    else:
+                        print("No parent node {0} found for {1}".format(entity.parent().URI().path(), entity.URI().path()))
 
                 # Create the visual node for this entity
-                entity_node = entity_node_class(self.scene, entity, parent_node)
+                entity_node = entity_node_class(parent_node.content.subgraph.scene if parent_node else self.scene, entity, parent_node)
                 self._entity_to_node[entity.URI().path()] = entity_node
 
                 # Set initial node position
