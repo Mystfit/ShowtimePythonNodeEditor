@@ -78,4 +78,11 @@ class ShowtimePlugSocket(Socket):
         # Limit number of connections depending on max cables that can be connected
         multi_edges = True if self.plug.max_connected_cables() > 1 or self.plug.max_connected_cables() < 0 else False
 
+        # Super socket class
         super().__init__(parent_node, plug_index, position, socket_type, multi_edges, count_on_this_node_side, is_input)
+
+        # Add socket to parent node
+        if is_input:
+            parent_node.inputs.append(self)
+        else:
+            parent_node.outputs.append(self)

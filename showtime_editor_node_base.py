@@ -1,6 +1,6 @@
 from qtpy.QtGui import QImage
 from qtpy.QtCore import QRectF
-from qtpy.QtWidgets import QLabel, QSizePolicy, QGridLayout, QPushButton
+from qtpy.QtWidgets import QLabel, QSizePolicy, QGridLayout, QPushButton, QGraphicsItem
 
 from nodeeditor.node_node import Node
 from nodeeditor.node_content_widget import QDMNodeContentWidget
@@ -43,6 +43,7 @@ class ShowtimeEditorGraphicsNode(QDMGraphicsNode):
             self.icons,
             QRectF(offset, 0, 24.0, 24.0)
         )
+
 
 class ShowtimeEditorContent(QDMNodeContentWidget):
     def initUI(self):
@@ -139,6 +140,7 @@ class ShowtimeEditorNode(Node):
 
     def maximise(self):
         self.ismaximised = True
+        self.grNode.setAcceptHoverEvents(False)
 
         # Set size values
         title_offset = self.grNode.title_height + self.grNode.title_vertical_padding
@@ -158,6 +160,7 @@ class ShowtimeEditorNode(Node):
 
     def minimize(self):
         self.ismaximised = False
+        self.grNode.setAcceptHoverEvents(True)
 
         # Restore sizes
         self.grNode.width = ShowtimeEditorGraphicsNode.minimised_width
@@ -172,7 +175,6 @@ class ShowtimeEditorNode(Node):
 
         # Restore node stacking order
         self.grNode.setZValue(0)
-
 
     def onDoubleClicked(self, event):
         """Event handling double click on Graphics Node in `Scene`"""
@@ -196,6 +198,12 @@ class ShowtimeEditorNode(Node):
         return res
 
     def onEdgeConnectionChanged(self, new_edge):
+        # We will receive two events so limit ourself to output->input connections only
         output_plug = new_edge.start_socket.plug
         input_plug = new_edge.end_socket.plug
-        print("Connecting cable between {0} {1}".format(output_plug.URI().path(), input_plug.URI().path()))
+        # print("Connecting cable between {0} {1}".format(output_plug.URI().path(), input_plug.URI().path()))
+
+        if output_plug.URI().contains(self.entity.URI()):
+            # Our entity contains the output plug
+            cable = output_plug.connect_cable_async(input_plug)
+            cable.synchronisable_events().synchronisable_activated.add(lambda synchronisable: print("Cable activated"))
