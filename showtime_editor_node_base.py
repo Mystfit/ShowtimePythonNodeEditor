@@ -1,7 +1,8 @@
-from qtpy.QtGui import QImage
-from qtpy.QtCore import QRectF
+from qtpy.QtGui import QImage, QPixmap
+from qtpy.QtCore import QRectF, QDataStream, QIODevice, Qt
 from qtpy.QtWidgets import QLabel, QSizePolicy, QGridLayout, QPushButton, QGraphicsItem
 
+from showtime_editor_conf import SHOWTIME_EDITOR_NODES, get_node_class_from_entity, get_node_class_from_entity_type, LISTBOX_MIMETYPE
 from nodeeditor.node_node import Node
 from nodeeditor.node_content_widget import QDMNodeContentWidget
 from nodeeditor.node_graphics_node import QDMGraphicsNode
@@ -10,12 +11,20 @@ from nodeeditor.utils import dumpException
 from nodeeditor.node_editor_widget import NodeEditorWidget
 
 
+DEBUG = True
+DEBUG_CONTEXT = True
+
+
 class ShowtimeEditorGraphicsNode(QDMGraphicsNode):
     maximised_width = 1280
     maximised_height = 900
     minimised_width = 160
     minimised_height = 74
     maximised_padding = 25
+
+    def initUI(self):
+        super().initUI()
+        self.setAcceptDrops(True)
 
     def initSizes(self):
         super().initSizes()
@@ -55,12 +64,15 @@ class ShowtimeEditorContent(QDMNodeContentWidget):
         self.subgraph = NodeEditorWidget(self)
         self.subgraph.setVisible(False)
         self.subgraph.setSizePolicy(QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding))
+        # self.subgraph.setAcceptDrops(True)
+        self.subgraph.scene.getView().setAcceptDrops(True)
+
         self.layout.addWidget(self.subgraph, 1, 1)
 
 
 class ShowtimeEditorNode(Node):
     icon = ""
-    # op_code = 0
+    op_code = ""
     op_title = "Undefined"
     content_label = ""
     content_label_objname = "showtime_editor_node_bg"
@@ -80,6 +92,10 @@ class ShowtimeEditorNode(Node):
         self.markDirty()
 
         self.ismaximised = False
+
+        # Pass events to subgraph
+        self.content.subgraph.scene.addDropListener(self.onDrop)
+        self.content.subgraph.scene.addDragEnterListener(self.onDragEnter)
 
     def initSettings(self):
         super().initSettings()
@@ -207,3 +223,34 @@ class ShowtimeEditorNode(Node):
             # Our entity contains the output plug
             cable = output_plug.connect_cable_async(input_plug)
             cable.synchronisable_events().synchronisable_activated.add(lambda synchronisable: print("Cable activated"))
+
+    def onDragEnter(self, event):
+        print("Subgraph received drag event")
+
+    def onDrop(self, event):
+        print("Redirected drop event to node {0}".format(self))
+        if event.mimeData().hasFormat(LISTBOX_MIMETYPE):
+            eventData = event.mimeData().data(LISTBOX_MIMETYPE)
+            dataStream = QDataStream(eventData, QIODevice.ReadOnly)
+            pixmap = QPixmap()
+            dataStream >> pixmap
+            op_code = dataStream.readQString()
+            text = dataStream.readQString()
+
+            mouse_position = event.pos()
+            scene_position = self.scene.grScene.views()[0].mapToScene(mouse_position)
+
+            if DEBUG: print("GOT DROP: [%s] '%s'" % (op_code, text), "mouse:", mouse_position, "scene:", scene_position)
+
+            try:
+                # (entity, scene, parent_node=None)
+                node = get_node_class_from_entity_type(op_code)(self.content.subgraph.scene, None, self)
+                node.setPos(mouse_position.x(), mouse_position.y())
+                self.scene.history.storeHistory("Created node %s" % node.__class__.__name__)
+            except Exception as e: dumpException(e)
+
+            event.setDropAction(Qt.MoveAction)
+            event.accept()
+        else:
+            # print(" ... drop ignored, not requested format '%s'" % LISTBOX_MIMETYPE)
+            event.ignore()

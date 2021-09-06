@@ -26,10 +26,11 @@ class ShowtimeEditorPerformerContent(ShowtimeEditorContent):
         return res
 
 
-@register_node(ZstEntityType_PERFORMER)
+@register_node(ZstPerformer.__qualname__)
 class ShowtimeEditorNode_Performer(ShowtimeEditorNode):
     icon = "icons/in.png"
     op_title = "Performer"
+    op_code = ZstPerformer.__qualname__
     content_label_objname = "showtime_editor_node_performer"
     creatable = False
 

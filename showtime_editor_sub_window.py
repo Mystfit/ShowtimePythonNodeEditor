@@ -1,8 +1,8 @@
 from qtpy.QtGui import QIcon, QPixmap
 from qtpy.QtCore import QDataStream, QIODevice, Qt
-from qtpy.QtWidgets import QAction, QGraphicsProxyWidget, QMenu
+from qtpy.QtWidgets import QAction, QGraphicsProxyWidget, QMenu, QApplication
 
-from showtime_editor_conf import SHOWTIME_EDITOR_NODES, get_node_class_from_entity, LISTBOX_MIMETYPE
+from showtime_editor_conf import SHOWTIME_EDITOR_NODES, get_node_class_from_entity, get_node_class_from_entity_type, LISTBOX_MIMETYPE
 from nodeeditor.node_editor_widget import NodeEditorWidget
 from nodeeditor.node_edge import EDGE_TYPE_DIRECT, EDGE_TYPE_BEZIER, EDGE_TYPE_SQUARE
 from nodeeditor.node_graphics_view import MODE_EDGE_DRAG
@@ -10,8 +10,8 @@ from nodeeditor.utils import dumpException
 
 from nodes.performer import ShowtimeEditorNode_Performer
 
-DEBUG = False
-DEBUG_CONTEXT = False
+DEBUG = True
+DEBUG_CONTEXT = True
 
 
 class ShowtimeEditorSubWindow(NodeEditorWidget):
@@ -19,14 +19,14 @@ class ShowtimeEditorSubWindow(NodeEditorWidget):
         super().__init__()
         # self.setAttribute(Qt.WA_DeleteOnClose)
 
+        # Showtime instance
         self.ZST = client
-        print(self.ZST)
-        print(self.ZST.client)
-        print(self.ZST.client_loop.is_running)
 
         self.setTitle()
         self.initNewNodeActions()
 
+        # Scene properties
+        # self.scene.getView().setAcceptDrops(False)  # Disable dropping on the main subwindow
         self.scene.addHasBeenModifiedListener(self.setTitle)
         self.scene.history.addHistoryRestoredListener(self.onHistoryRestored)
         self.scene.addDragEnterListener(self.onDragEnter)
@@ -40,7 +40,7 @@ class ShowtimeEditorSubWindow(NodeEditorWidget):
         self.populate_graph()
 
     def register_graph_events(self):
-        self.ZST.client.hierarchy_events().performer_arriving.add(self.create_node_for_entity)
+        self.ZST.client.hierarchy_events().performer_arriving.add(self.create_node_for_performer)
         self.ZST.client.hierarchy_events().performer_leaving.add(self.remove_entity_node)
         self.ZST.client.hierarchy_events().entity_arriving.add(self.create_node_for_entity)
         self.ZST.client.hierarchy_events().entity_leaving.add(self.remove_entity_node)
@@ -77,10 +77,22 @@ class ShowtimeEditorSubWindow(NodeEditorWidget):
                 for entity in performer.get_child_entities(False, True):
                     component_node = self.create_node_for_entity(entity)
 
+    def create_node_for_performer(self, entity):
+        print("Performer arriving {0}".format(entity.URI().path()))
+        self.create_node(entity)
+
     def create_node_for_entity(self, entity):
+        print("Entity arriving {0}".format(entity.URI().path()))
+        self.create_node(entity)
+
+    def create_node(self, entity):
+        print("create_node entity proxy: {0}".format(entity.is_proxy()))
         entity_node = None
         if entity.URI().path() not in self._entity_to_node:
             try:
+                # Create the visual node for this entity
+                print("{0} arrived: {1}".format(entity, entity.URI().path()))
+
                 entity_node_class = get_node_class_from_entity(entity)
                 if not entity_node_class:
                     raise Exception("No node class found")
@@ -93,7 +105,6 @@ class ShowtimeEditorSubWindow(NodeEditorWidget):
                     else:
                         print("No parent node {0} found for {1}".format(entity.parent().URI().path(), entity.URI().path()))
 
-                # Create the visual node for this entity
                 entity_node = entity_node_class(parent_node.content.subgraph.scene if parent_node else self.scene, entity, parent_node)
                 self._entity_to_node[entity.URI().path()] = entity_node
 
@@ -169,38 +180,26 @@ class ShowtimeEditorSubWindow(NodeEditorWidget):
 
     def onDragEnter(self, event):
         if event.mimeData().hasFormat(LISTBOX_MIMETYPE):
+            print("Subwindow drag enter")
             event.acceptProposedAction()
         else:
             # print(" ... denied drag enter event")
             event.setAccepted(False)
 
     def onDrop(self, event):
-        if event.mimeData().hasFormat(LISTBOX_MIMETYPE):
-            eventData = event.mimeData().data(LISTBOX_MIMETYPE)
-            dataStream = QDataStream(eventData, QIODevice.ReadOnly)
-            pixmap = QPixmap()
-            dataStream >> pixmap
-            op_code = dataStream.readInt()
-            text = dataStream.readQString()
+        print("Drop on subwindow")
+        mouse_position = event.pos()
+        scene_position = self.scene.grScene.views()[0].mapToScene(mouse_position)
+        
+        target_item = self.scene.grScene.itemAt(scene_position, self.scene.grScene.views()[0].viewportTransform())
+        
+        if hasattr(target_item, "node"):
+            print(target_item.node)
+            target_item.node.onDrop(event)
 
-            mouse_position = event.pos()
-            scene_position = self.scene.grScene.views()[0].mapToScene(mouse_position)
-
-            if DEBUG: print("GOT DROP: [%d] '%s'" % (op_code, text), "mouse:", mouse_position, "scene:", scene_position)
-
-            try:
-                node = get_class_from_opcode(op_code)(self.scene)
-                node.setPos(scene_position.x(), scene_position.y())
-                self.scene.history.storeHistory("Created node %s" % node.__class__.__name__)
-            except Exception as e: dumpException(e)
-
-
-            event.setDropAction(Qt.MoveAction)
-            event.accept()
-        else:
-            # print(" ... drop ignored, not requested format '%s'" % LISTBOX_MIMETYPE)
-            event.ignore()
-
+        print(mouse_position, scene_position)
+        
+        event.ignore()
 
     def contextMenuEvent(self, event):
         try:
@@ -284,7 +283,6 @@ class ShowtimeEditorSubWindow(NodeEditorWidget):
 
 
     def handleNewNodeContextMenu(self, event):
-
         if DEBUG_CONTEXT: print("CONTEXT: EMPTY SPACE")
         context_menu = self.initNodesContextMenu()
         action = context_menu.exec_(self.mapToGlobal(event.pos()))

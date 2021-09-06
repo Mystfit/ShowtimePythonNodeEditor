@@ -30,7 +30,7 @@ class QDMDragListbox(QListWidget):
                     self.addMyItem(node.op_title, node.icon, node.op_code)
 
 
-    def addMyItem(self, name, icon=None, op_code=0):
+    def addMyItem(self, name, icon=None, op_code=""):
         item = QListWidgetItem(name, self) # can be (icon, text, parent, <int>type)
         pixmap = QPixmap(icon if icon is not None else ".")
         item.setIcon(QIcon(pixmap))
@@ -54,7 +54,7 @@ class QDMDragListbox(QListWidget):
             itemData = QByteArray()
             dataStream = QDataStream(itemData, QIODevice.WriteOnly)
             dataStream << pixmap
-            dataStream.writeInt(op_code)
+            dataStream.writeQString(op_code)
             dataStream.writeQString(item.text())
 
             mimeData = QMimeData()

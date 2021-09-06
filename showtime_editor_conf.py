@@ -33,13 +33,13 @@ def register_node(entity_type):
     return decorator
 
 def get_node_class_from_entity_type(entity_type):
-    if entity_type not in SHOWTIME_EDITOR_NODES: raise EntityTypeNotRegistered("EntityType '%d' is not registered" % entity_type)
+    if entity_type not in SHOWTIME_EDITOR_NODES: raise EntityTypeNotRegistered("EntityType '%s' is not registered" % entity_type)
     return SHOWTIME_EDITOR_NODES[entity_type]
 
 def get_node_class_from_entity(entity):
     if not entity:
         raise EntityTypeNotRegistered("Entity is None")
-    return get_node_class_from_entity_type(entity.entity_type())
+    return get_node_class_from_entity_type(entity.__class__.__name__)
 
 
 # import all nodes and register them

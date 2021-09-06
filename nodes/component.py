@@ -27,11 +27,12 @@ class ShowtimeEditorComponentContent(ShowtimeEditorContent):
         return res
 
 
-@register_node(ZstEntityType_COMPONENT)
+@register_node(ZstComponent.__qualname__)
 class ShowtimeEditorNode_Component(ShowtimeEditorNode):
     Socket_class = ShowtimePlugSocket
  
     icon = "icons/add.png"
+    op_code = ZstComponent.__qualname__
     op_title = "Component"
     content_label_objname = "showtime_editor_node_component"
     creatable = False
