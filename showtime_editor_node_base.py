@@ -6,7 +6,7 @@ from showtime_editor_conf import SHOWTIME_EDITOR_NODES, get_node_class_from_enti
 from nodeeditor.node_node import Node
 from nodeeditor.node_content_widget import QDMNodeContentWidget
 from nodeeditor.node_graphics_node import QDMGraphicsNode
-from nodeeditor.node_socket import LEFT_CENTER, RIGHT_CENTER
+from nodeeditor.node_socket import LEFT_TOP, RIGHT_TOP
 from nodeeditor.utils import dumpException
 from nodeeditor.node_editor_widget import NodeEditorWidget
 
@@ -99,54 +99,8 @@ class ShowtimeEditorNode(Node):
 
     def initSettings(self):
         super().initSettings()
-        self.input_socket_position = LEFT_CENTER
-        self.output_socket_position = RIGHT_CENTER
-
-    def evalOperation(self, input1, input2):
-        pass
-        # return 123
-
-    def evalImplementation(self):
-        pass
-        # i1 = self.getInput(0)
-        # i2 = self.getInput(1)
-
-        # if i1 is None or i2 is None:
-        #     self.markInvalid()
-        #     self.markDescendantsDirty()
-        #     self.grNode.setToolTip("Connect all inputs")
-        #     return None
-
-        # else:
-        #     val = self.evalOperation(i1.eval(), i2.eval())
-        #     self.value = val
-        #     self.markDirty(False)
-        #     self.markInvalid(False)
-        #     self.grNode.setToolTip("")
-
-        #     self.markDescendantsDirty()
-        #     self.evalChildren()
-
-        #     return val
-
-    def eval(self):
-        pass
-        # if not self.isDirty() and not self.isInvalid():
-        #     print(" _> returning cached %s value:" % self.__class__.__name__, self.value)
-        #     return self.value
-
-        # try:
-
-        #     val = self.evalImplementation()
-        #     return val
-        # except ValueError as e:
-        #     self.markInvalid()
-        #     self.grNode.setToolTip(str(e))
-        #     self.markDescendantsDirty()
-        # except Exception as e:
-        #     self.markInvalid()
-        #     self.grNode.setToolTip(str(e))
-        #     dumpException(e)
+        self.input_socket_position = LEFT_TOP
+        self.output_socket_position = RIGHT_TOP
 
     def toggle_maximised(self):
         if self.ismaximised:

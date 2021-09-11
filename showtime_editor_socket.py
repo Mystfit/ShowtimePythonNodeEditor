@@ -47,15 +47,15 @@ class ShowtimePlugSocket(Socket):
         self.plug = ZST.cast_to_input_plug(entity) if plug.direction() == ZST.ZstPlugDirection_IN_JACK else ZST.cast_to_output_plug(entity)
 
         # Count on our node side
-        plug_index, count_on_this_node_side = self.get_index_and_count_on_side()
+        plug_index = self.get_plug_index()
 
         # Limit number of connections depending on max cables that can be connected
         multi_edges = True if self.plug.max_connected_cables() > 1 or self.plug.max_connected_cables() < 0 else False
 
         # Super socket class
-        super().__init__(parent_node, plug_index, position, socket_type, multi_edges, count_on_this_node_side, is_input)
+        super().__init__(parent_node, plug_index, position, socket_type, multi_edges, 0, is_input)
 
-    def get_index_and_count_on_side(self):
+    def get_plug_index(self):
         input_index = -1
         output_index = -1
         parent_entities = self.plug.parent().get_child_entities()
@@ -72,7 +72,7 @@ class ShowtimePlugSocket(Socket):
                 else:
                     output_index += 1
 
-        return (plug_index, input_index) if self.plug.direction() == ZST.ZstPlugDirection_IN_JACK else (plug_index, output_index)
+        return plug_index if self.plug.direction() == ZST.ZstPlugDirection_IN_JACK else plug_index
 
 
 @register_node(ZstInputPlug.__qualname__)
