@@ -15,7 +15,7 @@ class EventLoop(threading.Thread):
 
     def run(self):
         while self.is_running:
-            self.client.poll_once()
+            self.client.poll_once(False)
             time.sleep(0.001)
 
 class ShowtimeEditorClient:
@@ -41,3 +41,26 @@ class ShowtimeEditorClient:
         self.client_loop.stop()
         self.client.leave()
         self.client.destroy()
+
+
+def cast_entity_to_natural_type(entity):
+    if entity.entity_type() == ZST.ZstEntityType_PERFORMER:
+        print("Casting to performer")
+        return ZST.cast_to_performer(entity)
+    elif entity.entity_type() == ZST.ZstEntityType_COMPONENT:
+        print("Casting to component")
+        return ZST.cast_to_component(entity)
+    elif entity.entity_type() == ZST.ZstEntityType_FACTORY:
+        print("Casting to factory")
+        return ZST.cast_to_factory(entity)
+    elif entity.entity_type() == ZST.ZstEntityType_PLUG:
+        print("Casting to plug")
+        plug = ZST.cast_to_plug(entity)
+        if plug.direction() == ZST.ZstPlugDirection_IN_JACK:
+            print("Casting to input plug")
+            return ZST.cast_to_input_plug(entity)
+        else:
+            print("Casting to output plug")
+            return ZST.cast_to_output_plug(entity)
+    
+    return entity

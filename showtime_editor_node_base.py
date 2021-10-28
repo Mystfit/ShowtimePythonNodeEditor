@@ -108,6 +108,11 @@ class ShowtimeEditorNode(Node):
         else:
             self.maximise()
 
+    def remove(self):
+        super().remove()
+        self.layout.removeWidget(self.content.subgraph)
+        self.content = None
+
     def maximise(self):
         self.ismaximised = True
         self.grNode.setAcceptHoverEvents(False)

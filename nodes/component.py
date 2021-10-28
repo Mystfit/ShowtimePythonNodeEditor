@@ -41,8 +41,10 @@ class ShowtimeEditorNode_Component(ShowtimeEditorNode):
         super().__init__(component, scene, parent_node, inputs=[], outputs=[])
 
         # Register events
-        component.entity_events().child_entity_added.add(self.child_entity_added)
-        component.entity_events().child_entity_removed.add(self.child_entity_removed)
+        # FIXME: DO NOT USE THESE EVENTS, THEY CAN GET ACCIDENTALLY CALLED FROM THE NETWORK THREAD
+        # Possibly causing a GIL error or something else stupid
+        # component.entity_events().child_entity_added.add(self.child_entity_added)
+        # component.entity_events().child_entity_removed.add(self.child_entity_removed)
 
     def initInnerClasses(self):
         self.content = ShowtimeEditorComponentContent(self)
