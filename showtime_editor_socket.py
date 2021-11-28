@@ -2,13 +2,30 @@ from nodeeditor.node_socket import Socket
 from nodeeditor.node_graphics_socket import QDMGraphicsSocket
 from nodeeditor.node_socket import Socket, LEFT_BOTTOM, LEFT_CENTER, LEFT_TOP, RIGHT_BOTTOM, RIGHT_CENTER, RIGHT_TOP
 from showtime_editor_conf import register_node
+from qtpy.QtWidgets import QGraphicsTextItem
+from qtpy.QtCore import Qt
+from qtpy.QtGui import QFont, QColor
 
 import showtime.showtime as ZST
 from showtime.showtime import ZstPlug, ZstInputPlug, ZstOutputPlug
 
+class ShowtimeEditorGraphicsSocket(QDMGraphicsSocket):
+    def __init__(self, socket:'Socket'):
+        super().__init__(socket)
+        self.initUI()
+
+    def initUI(self):
+        self.socket_label = QGraphicsTextItem(self)
+        self.socket_label.setDefaultTextColor(Qt.white)
+        self.socket_label.setFont(QFont("Ubuntu", 10))
+        # self.socket_label.setTextWidth(self.socket_label.boundingRect().width())
+
+    def update_socket_label(self):
+        self.socket_label.setPos(-self.socket_label.boundingRect().width() if self.socket_type == 2 else 0, 0)
+
 
 class ShowtimePlugSocket(Socket):
-    Socket_GR_Class = QDMGraphicsSocket
+    Socket_GR_Class = ShowtimeEditorGraphicsSocket
     creatable = False
 
     """Class representing Socket."""
@@ -55,24 +72,33 @@ class ShowtimePlugSocket(Socket):
         # Super socket class
         super().__init__(parent_node, plug_index, position, socket_type, multi_edges, 0, is_input)
 
+        # Set the socket label
+        self.grSocket.socket_label.setPlainText(self.plug.URI().last().path())
+        self.grSocket.update_socket_label()
+
+        # Resize parent node to fit all children
+        parent_node.resize()
+
     def get_plug_index(self):
         input_index = -1
         output_index = -1
+        plug_index = -1
         parent_entities = self.plug.parent().get_child_entities()
-        for idx in range(len(parent_entities)):
-            neighbour_plug = ZST.cast_to_plug(parent_entities[idx])
+        for entity in parent_entities:
+            neighbour_plug = ZST.cast_to_plug(entity)
             if neighbour_plug:
-                # Match our plug to get its index
-                if neighbour_plug.URI().path() == self.plug.URI().path():
-                    plug_index = input_index if self.plug.direction() == ZST.ZstPlugDirection_IN_JACK else output_index
-
                 # Count how many input and output plugs we have
-                if self.plug.direction() == ZST.ZstPlugDirection_IN_JACK:
+                if neighbour_plug.direction() == ZST.ZstPlugDirection_IN_JACK:
                     input_index += 1
                 else:
                     output_index += 1
 
-        return plug_index if self.plug.direction() == ZST.ZstPlugDirection_IN_JACK else plug_index
+                # Match our plug to get its index
+                if neighbour_plug.URI().path() == self.plug.URI().path():
+                    plug_index = input_index if self.plug.direction() == ZST.ZstPlugDirection_IN_JACK else output_index
+
+        print("Total inputs {0}, outputs {1}, Index for plug {2} is {3}".format(input_index, output_index, self.plug.URI().path(), plug_index))
+        return plug_index
 
 
 @register_node(ZstInputPlug.__qualname__)

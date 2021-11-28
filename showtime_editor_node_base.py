@@ -10,6 +10,8 @@ from nodeeditor.node_socket import LEFT_TOP, RIGHT_TOP
 from nodeeditor.utils import dumpException
 from nodeeditor.node_editor_widget import NodeEditorWidget
 
+import showtime.showtime as ZST
+
 
 DEBUG = True
 DEBUG_CONTEXT = True
@@ -18,7 +20,7 @@ DEBUG_CONTEXT = True
 class ShowtimeEditorGraphicsNode(QDMGraphicsNode):
     maximised_width = 1280
     maximised_height = 900
-    minimised_width = 160
+    minimised_width = 250
     minimised_height = 74
     maximised_padding = 25
 
@@ -47,11 +49,12 @@ class ShowtimeEditorGraphicsNode(QDMGraphicsNode):
         if self.node.isDirty(): offset = 0.0
         if self.node.isInvalid(): offset = 48.0
 
-        painter.drawImage(
-            QRectF(-10, -10, 24.0, 24.0),
-            self.icons,
-            QRectF(offset, 0, 24.0, 24.0)
-        )
+        ## Draw status icon
+        # painter.drawImage(
+        #     QRectF(-10, -10, 24.0, 24.0),
+        #     self.icons,
+        #     QRectF(offset, 0, 24.0, 24.0)
+        # )
 
 
 class ShowtimeEditorContent(QDMNodeContentWidget):
@@ -112,6 +115,25 @@ class ShowtimeEditorNode(Node):
         super().remove()
         self.layout.removeWidget(self.content.subgraph)
         self.content = None
+
+    def resize(self):
+        title_offset = self.grNode.title_height + self.grNode.title_vertical_padding
+        total_inputs = 1
+        total_outputs = 1
+        child_entities = self.entity.get_child_entities()
+        for entity in child_entities:
+            plug = ZST.cast_to_plug(entity)
+            if plug:
+                # Count how many input and output plugs we have
+                if plug.direction() == ZST.ZstPlugDirection_IN_JACK:
+                    total_inputs += 1
+                else:
+                    total_outputs += 1
+
+        height = max(total_inputs, total_outputs) * 22
+        self.grNode.height = height
+        self.grNode.width = ShowtimeEditorGraphicsNode.minimised_width
+        self.content.resize(self.grNode.width, self.grNode.height + title_offset)
 
     def maximise(self):
         self.ismaximised = True
